@@ -3,6 +3,7 @@
 #include <forward_list>
 #include <vector>
 #include <functional>
+#include <stdexcept>
 
 template<typename T, typename Comp = std::less<T>>
 class binomial_heap {
@@ -30,6 +31,7 @@ public:
     };
 private:
     void delete_trees();
+    void set_min();
     void zip();
     void fast_zip();
     void merge_lists(std::forward_list<node*>&& rhs);
@@ -37,21 +39,23 @@ private:
         node();
         node(const T& key);
         node(const node& rhs);
-        node(node&&) = default;
+        node(node&& rhs);
         node& operator=(const node& rhs);
+        node& operator=(node&& rhs);
         ~node();
         node* search(const T& target, const Comp& compare);
         void delete_children();
+        node* promote(node* to_merge);
 
         T key;
         std::forward_list<node*> children;
+        uint64_t degree;
     };
     Comp compare;
     std::forward_list<node*> trees;
     node* min;
 };
 
-#include <stdexcept>
 
 /***************************************************************************************************
 *                                                                                                  *
@@ -72,10 +76,10 @@ T binomial_heap<T, Comp>::iterator::operator*() { return data->key; }
 ***************************************************************************************************/
 
 template<typename T, typename Comp>
-binomial_heap<T, Comp>::node::node() {}
+binomial_heap<T, Comp>::node::node() : key(T()), degree(0) {}
 
 template<typename T, typename Comp>
-binomial_heap<T, Comp>::node::node(const T& key) : key(key) {}
+binomial_heap<T, Comp>::node::node(const T& key) : key(key), degree(0) {}
 
 template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::node(
@@ -83,9 +87,30 @@ binomial_heap<T, Comp>::node::node(
 ) { this->operator=(rhs); }
 
 template<typename T, typename Comp>
+binomial_heap<T, Comp>::node::node(
+    typename binomial_heap<T, Comp>::node&& rhs
+) { this->operator=(rhs); }
+
+template<typename T, typename Comp>
 typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
     const typename binomial_heap<T, Comp>::node& rhs
 ) {
+    key = rhs.key;
+    delete_children();
+    children.clear();
+    for(node* child: rhs.children) children.push_front(new node(child));
+    return *this;
+}
+
+template<typename T, typename Comp>
+typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
+    typename binomial_heap<T, Comp>::node&& rhs
+) {
+    delete_children();
+    children.clear();
+    key = std::move(rhs.key);
+    children = std::move(rhs.children);
+    degree = std::move(rhs.degree);
     return *this;
 }
 
@@ -93,7 +118,10 @@ template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::~node() { delete_children(); children.clear(); }
 
 template<typename T, typename Comp>
-void binomial_heap<T, Comp>::node::delete_children() { for(node* child: children) delete child; }
+void binomial_heap<T, Comp>::node::delete_children() {
+    for(node* child: children) delete child;
+    degree = 0;
+}
 
 template<typename T, typename Comp>
 typename binomial_heap<T, Comp>::node* binomial_heap<T, Comp>::node::search(
@@ -106,6 +134,22 @@ typename binomial_heap<T, Comp>::node* binomial_heap<T, Comp>::node::search(
         if(found) return found;
     }
     return nullptr;
+}
+
+template<typename T, typename Comp>
+typename binomial_heap<T, Comp>::node* binomial_heap<T, Comp>::node::promote(
+    binomial_heap<T, Comp>::node* to_merge
+) {
+    if(compare(key, to_merge->key)) {
+        trees.push_front(to_merge);
+        ++degree;
+        return this;
+    }
+    else {
+        to_merge.push_front(this);
+        ++to_merge.degree;
+        return to_merge;
+    }
 }
 
 /***************************************************************************************************
@@ -126,13 +170,22 @@ binomial_heap<T, Comp>::binomial_heap(binomial_heap<T, Comp>&& rhs) { this->oper
 
 template<typename T, typename Comp>
 binomial_heap<T, Comp>& binomial_heap<T, Comp>::operator=(const binomial_heap<T, Comp>& rhs) {
-    //only assign each field
+    delete_trees();
+    trees.clear();
+    compare = rhs.compare;
+    for(node* tree: rhs.trees) { trees.push_front(new node(*tree)); }
+    trees.reverse();
+    set_min();
     return *this;
 }
 
 template<typename T, typename Comp>
 binomial_heap<T, Comp>& binomial_heap<T, Comp>::operator=(binomial_heap<T, Comp>&& rhs) {
-    //std::move each field
+    delete_trees();
+    trees.clear();
+    compare = std::move(rhs.compare);
+    trees = std::move(rhs.trees);
+    min = std::move(rhs.min);
     return *this;
 }
 
@@ -153,6 +206,7 @@ T binomial_heap<T, Comp>::front() { return min->key; }
 
 template<typename T, typename Comp>
 T binomial_heap<T, Comp>::extract() {
+    //finish
     return min->key;
 }
 
@@ -176,6 +230,7 @@ std::vector<typename binomial_heap<T, Comp>::iterator> binomial_heap<T, Comp>::m
 ) {
     std::vector<iterator> iters;
     while(start != end) iters.push_back(insert(*start));
+    return iters;
 }
 
 //if the key becomes equivalent to another key, this key bubbles above
@@ -197,14 +252,35 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::delete_trees() { for(node* tree: trees) delete tree; }
 
 template<typename T, typename Comp>
-void binomial_heap<T, Comp>::zip() {
+void binomial_heap<T, Comp>::set_min() {
+    if(!trees.size()) { min = nullptr; return; }
+    min = trees.front();
+    for(node* tree: trees) if(compare(tree->key, min)) min = tree;
+}
 
+template<typename T, typename Comp>
+void binomial_heap<T, Comp>::zip() {
+    for(auto it = trees.begin(); it != trees.end() && (it + 1) != trees.end();) {
+        auto next = it + 1;
+        if(it->degree == next->degree) {
+            *it = *it.promote(*next);
+            trees.erase_after(it);
+        }
+        else it = next;
+    }
 }
 
 //zips until no duplicate found
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::fast_zip() {
-
+    for(auto it = trees.begin(); it != trees.end() && (it + 1) != trees.end();) {
+        auto next = it + 1;
+        if(it->degree == next->degree) {
+            *it = *it.promote(*next);
+            trees.erase_after(it);
+        }
+        else return;
+    }
 }
 
 template<typename T, typename Comp>
