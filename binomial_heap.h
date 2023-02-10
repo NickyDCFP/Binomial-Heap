@@ -1,7 +1,7 @@
 /**
  *  @file   binomial_heap.h
  *  @brief  A templated binomial heap that supports constant time amortized insertion and
- *          logarithmic time merges.
+ *          logarithmic time merging.
  * 
  *  @author Nicky Kriplani
  *  @date   February 10, 2023
