@@ -1,4 +1,11 @@
-
+/**
+ *  @file   binomial_heap.h
+ *  @brief  A templated binomial heap that supports constant time amortized insertion and
+ *          logarithmic time merges.
+ * 
+ *  @author Nicky Kriplani
+ *  @date   February 10, 2023
+*/
 #ifndef BINOMIAL_HEAP
 #define BINOMIAL_HEAP 1
 #include <forward_list>
