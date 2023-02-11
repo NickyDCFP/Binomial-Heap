@@ -33,7 +33,7 @@ public:
     iterator find(T key);
     T front();
     T extract();
-    void merge(binomial_heap& rhs);
+    void merge(binomial_heap& rhs); //one by (const? read docs) reference and one by move (fix)
     iterator insert(T key);
     template<class InputIterator>
     std::vector<iterator> multi_insert(InputIterator start, InputIterator stop);
@@ -242,9 +242,9 @@ binomial_heap<T, Comp>::binomial_heap(const Comp& compare) :
 
 /**
  *  @brief      Range constructor for the binomial_heap class
- *  @param[in]  start 
- *  @param[in]  stop 
- *  @param[in]  compare 
+ *  @param[in]  start   the beginning of the range to be inserted into the heap
+ *  @param[in]  stop    the end of the range to be inserted into the heap
+ *  @param[in]  compare the comparison functor for heap-ordering, defaults to std::less<T>
  */
 template<typename T, typename Comp>
 template<class InputIterator>
@@ -411,7 +411,7 @@ void binomial_heap<T, Comp>::decrease_key(
     const binomial_heap<T, Comp>::iterator& it,
     T new_key
 ) {
-
+//in order to deal with decrease key, might need parent pointers (fix)
 }
 
 /**
@@ -483,9 +483,6 @@ void binomial_heap<T, Comp>::fast_zip() {
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge_lists(
     std::forward_list<typename binomial_heap<T, Comp>::node*>&& rhs
-) {
-    trees.merge(rhs, [] (node* a, node* b) { return a->degree < b->degree; });
-    zip();
-}
+) { trees.merge(rhs, [] (node* a, node* b) { return a->degree < b->degree; }); zip(); }
 
 #endif
