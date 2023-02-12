@@ -1,3 +1,11 @@
+/**
+ *  @file   heap_sort.h
+ *  @brief  A templated sort function that uses binomial heaps to sort data provided by iterators.
+ *          For use with stress testing.
+ * 
+ *  @author Nicky Kriplani
+ *  @date   February 12, 2023
+*/
 #ifndef HEAP_SORT
 #define HEAP_SORT 1
 #include "binomial_heap.h"

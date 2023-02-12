@@ -4,7 +4,7 @@
  *          logarithmic time merging.
  * 
  *  @author Nicky Kriplani
- *  @date   February 10, 2023
+ *  @date   February 12, 2023
 */
 #ifndef BINOMIAL_HEAP
 #define BINOMIAL_HEAP 1

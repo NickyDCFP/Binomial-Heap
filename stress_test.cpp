@@ -1,3 +1,10 @@
+/**
+ *  @file   stress_test.cpp
+ *  @brief  Stress tests the sorting algorithm by sorting a number of vectors.
+ * 
+ *  @author Nicky Kriplani
+ *  @date   February 12, 2023
+*/
 #include <chrono>
 #include <numeric>
 #include <iostream>
@@ -25,21 +32,23 @@ int main() {
     auto heap_stop = high_resolution_clock::now();
 
     int sort_duration = duration_cast<milliseconds>(sort_stop - sort_start).count();
+    double sort_avg = ((double)sort_duration) / NUM_SAMPLES;
     int heap_duration = duration_cast<milliseconds>(heap_stop - heap_start).count();
+    double heap_avg = ((double)heap_duration) / NUM_SAMPLES;
 
     std::cout << "For " << NUM_SAMPLES << " samples of size " << SAMPLE_SIZE << ",\n\t" <<
                  "std::sort:\n\t\tTotal: " << sort_duration << " ms\n\t\tAverage: " <<
-                 (sort_duration / NUM_SAMPLES) << " ms\n\theap_sort:\n\t\tTotal: " <<
-                 heap_duration << " ms\n\t\tAverage: " << (heap_duration / NUM_SAMPLES) << " ms";
+                 sort_avg << " ms\n\theap_sort:\n\t\tTotal: " << heap_duration <<
+                 " ms\n\t\tAverage: " << heap_avg << " ms";
 }
 
 /*
-Test 1, 2/12/2023 2:29 pm, pre-any optimization
+Test 1, 2/12/2023 4:01 pm, pre-any optimization
 For 10000 samples of size 10000,
         std::sort:
-                Total: 11797 ms
-                Average: 1 ms
+                Total: 11843 ms
+                Average: 1.1843 ms
         heap_sort:
-                Total: 117774 ms
-                Average: 11 ms
+                Total: 112164 ms
+                Average: 11.2164 ms
 */

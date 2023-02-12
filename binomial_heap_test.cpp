@@ -3,7 +3,7 @@
  *  @brief  Test file for the binomial heap data structure.
  * 
  *  @author Nicky Kriplani
- *  @date   February 10, 2023
+ *  @date   February 12, 2023
 */
 #include <iostream>
 #include <ctime>
@@ -25,18 +25,4 @@ int main() {
     std::cout << std::endl;
     std::cout << "Sorted: ";
     for(int n: unsorted) std::cout << n << " ";
-
-
-
-
-    
-    // binomial_heap<int> heap(unsorted.begin(), unsorted.end());
-    // std::vector<int> sorted;
-    // while(!heap.empty()) sorted.push_back(heap.extract());
-    // std::cout << "Unsorted: ";
-    // for(int n: unsorted) std::cout << n << " ";
-    // std::cout << std::endl;
-    // std::cout << "Sorted: ";
-    // for(int n: sorted) std::cout << n << " ";
-    // std::cout << std::endl;
 }
