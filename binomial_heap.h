@@ -14,6 +14,21 @@
 #include <stdexcept>
 #include <iterator>
 #include <algorithm>
+/***************************************************************************************************
+* Next steps:                                                                                      *
+*   1) Add parent pointers to support decrease_key and extraction                                  *
+*   2) Finish `void merge(binomial_heap&)` and add an overload that takes a heap by move           *
+*       a) The pass-by-reference version should empty the passed heap                              *
+*   3) Child lists are stored in reverse order relative to the tree list, which means they need to *
+*      be reversed every merge. Two possible solutions.                                            *
+*       a) Refactor the code to use std::list instead of std::forward_list, which would probably   *
+*          also have other slight heuristic time advantages.                                       *
+*       b) Store an iterator permanently sitting at the end of the list so that insertion to the   *
+*          end will be instant, meaning the lists will be in the same order. Saves space but is    *
+*          more complex.                                                                           *
+*       c) Will spend some time looking into the heuristic advantages of swapping to list and then *
+*          make a decision based on how tangible they are.                                         *
+***************************************************************************************************/
 
 template<typename T, typename Comp = std::less<T>>
 class binomial_heap {
@@ -33,7 +48,7 @@ public:
     iterator find(T key);
     T front();
     T extract();
-    void merge(binomial_heap& rhs); //one by (const? read docs) reference and one by move (fix)
+    void merge(binomial_heap& rhs); //one by reference and one by move (fix)
     iterator insert(T key);
     template<class InputIterator>
     std::vector<iterator> multi_insert(InputIterator start, InputIterator stop);
@@ -360,7 +375,7 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge(binomial_heap<T, Comp>& rhs) {
     _size += rhs._size;
     if(compare(rhs.min->key, min->key)) min = rhs.min;
-    
+    //unfinished
 }
 
 /**
