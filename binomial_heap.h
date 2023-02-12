@@ -48,7 +48,7 @@ public:
     iterator find(T key);
     T front();
     T extract();
-    void merge(binomial_heap& rhs); //one by reference and one by move (fix)
+    void merge(binomial_heap& rhs);
     iterator insert(T key);
     template<class InputIterator>
     std::vector<iterator> multi_insert(InputIterator start, InputIterator stop);
@@ -358,7 +358,7 @@ template<typename T, typename Comp>
 T binomial_heap<T, Comp>::extract() {
     T min_val = min->key;
     trees.remove(min);
-    min->children.reverse(); //VERY VERY BAD NEED TO FIXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    min->children.reverse();
     merge_lists(std::move(min->children));
     min->children = std::forward_list<node*>();
     delete min;
@@ -425,9 +425,7 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::decrease_key(
     const binomial_heap<T, Comp>::iterator& it,
     T new_key
-) {
-//in order to deal with decrease key, might need parent pointers (fix)
-}
+) {}
 
 /**
  *  @brief 
