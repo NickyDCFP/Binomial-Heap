@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <numeric>
 #include "binomial_heap.h"
+#include "heap_sort.h"
 
 int main() {
     std::srand(std::time(0));
@@ -18,13 +19,24 @@ int main() {
     std::vector<int> unsorted(30);
     std::iota(unsorted.begin(), unsorted.end(), 1);
     std::random_shuffle(unsorted.begin(), unsorted.end());
-    binomial_heap<int> heap(unsorted.begin(), unsorted.end());
-    std::vector<int> sorted;
-    while(!heap.empty()) sorted.push_back(heap.extract());
     std::cout << "Unsorted: ";
     for(int n: unsorted) std::cout << n << " ";
+    heap_sort(unsorted.begin(), unsorted.end());
     std::cout << std::endl;
     std::cout << "Sorted: ";
-    for(int n: sorted) std::cout << n << " ";
-    std::cout << std::endl;
+    for(int n: unsorted) std::cout << n << " ";
+
+
+
+
+    
+    // binomial_heap<int> heap(unsorted.begin(), unsorted.end());
+    // std::vector<int> sorted;
+    // while(!heap.empty()) sorted.push_back(heap.extract());
+    // std::cout << "Unsorted: ";
+    // for(int n: unsorted) std::cout << n << " ";
+    // std::cout << std::endl;
+    // std::cout << "Sorted: ";
+    // for(int n: sorted) std::cout << n << " ";
+    // std::cout << std::endl;
 }

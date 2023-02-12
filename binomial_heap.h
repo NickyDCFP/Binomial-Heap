@@ -333,7 +333,7 @@ typename binomial_heap<T, Comp>::iterator binomial_heap<T, Comp>::find(T key) {
  *  @return 
  */
 template<typename T, typename Comp>
-T binomial_heap<T, Comp>::front() { return min->key; } //fix for null min
+T binomial_heap<T, Comp>::front() { if(min) return min->key; throw new std::out_of_range("Empty"); }
 
 /**
  *  @brief 
