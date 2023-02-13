@@ -16,10 +16,9 @@
 #include <algorithm>
 /***************************************************************************************************
 * Next steps:                                                                                      *
-*   1) Add parent pointers to support decrease_key and extraction                                  *
-*   2) Finish `void merge(binomial_heap&)` and add an overload that takes a heap by move           *
-*       a) The pass-by-reference version should empty the passed heap                              *
-*   3) Child lists are stored in reverse order relative to the tree list, which means they need to *
+*   1) Add parent pointers to support decrease_key and deletion                                    *
+*       a) Updates might make other things slower? It's two pointer changes instead of one         *
+*   2) Child lists are stored in reverse order relative to the tree list, which means they need to *
 *      be reversed every merge. Two possible solutions.                                            *
 *       a) Refactor the code to use std::list instead of std::forward_list, which would probably   *
 *          also have other slight heuristic time advantages.                                       *
@@ -85,8 +84,8 @@ private:
     void merge_lists(std::forward_list<node*>&& rhs);
     struct node {
         node();
-        node(const T& key);
-        node(T&& key);
+        explicit node(const T& key);
+        explicit node(T&& key);
         node(const node& rhs);
         node(node&& rhs);
         node& operator=(const node& rhs);
