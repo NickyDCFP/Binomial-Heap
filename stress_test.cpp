@@ -66,6 +66,20 @@ For 10000 samples of size 10000,
                 Average: 12.8731 ms.
 */
 
+/*
+Test 2, 2/13/2023 9:57 am, added faster multi_insert
+For 10000 samples of size 10000,
+        std::sort:
+                Total: 11231 ms
+                Average: 1.1231 ms
+        binary_heap_sort:
+                Total: 37946 ms
+                Average: 3.7946 ms
+        binom_heap_sort:
+                Total: 104806 ms
+                Average: 10.4806 ms.
+*/
+
 /**
  *  @brief  Sorts the data by converting it to a binary max-heap
  * 
