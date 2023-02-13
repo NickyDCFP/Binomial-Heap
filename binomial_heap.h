@@ -28,6 +28,7 @@
 *          more complex.                                                                           *
 *       c) Will spend some time looking into the heuristic advantages of swapping to list and then *
 *          make a decision based on how tangible they are.                                         *
+*   4) Implement emplacing
 ***************************************************************************************************/
 
 /**
@@ -54,6 +55,7 @@ public:
     T min() const;
     T extract();
     void merge(binomial_heap& rhs);
+    void merge(binomial_heap&& rhs);
     iterator insert(T key);
     template<class InputIterator>
     std::vector<iterator> multi_insert(InputIterator start, InputIterator stop);
@@ -389,9 +391,20 @@ T binomial_heap<T, Comp>::extract() {
  */
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge(binomial_heap<T, Comp>& rhs) {
+    auto comp_copy = rhs.compare;
+    merge(std::move(rhs));
+    rhs = binomial_heap(comp_copy);
+}
+
+/**
+ * @brief       Merges two heaps, destroying the passed heap. O(log n) time.
+ * @param[in]   rhs the heap to be merged with this heap
+ */
+template<typename T, typename Comp>
+void binomial_heap<T, Comp>::merge(binomial_heap<T, Comp>&& rhs) {
     _size += rhs._size;
     if(compare(rhs._min->key, _min->key)) _min = rhs._min;
-    //unfinished
+    merge_lists(rhs.trees);
 }
 
 /**
@@ -446,6 +459,7 @@ void binomial_heap<T, Comp>::decrease_key(
     T new_key
 ) {
     if(!compare(new_key, it.data->key)) throw new std::invalid_argument("Invalid new key.");
+    //finish
 }
 
 /**
@@ -474,7 +488,7 @@ void binomial_heap<T, Comp>::delete_trees() {
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::set_min() {
     if(trees.empty()) { _min = nullptr; return; }
-    _min = trees.min();
+    _min = trees.front();
     for(node* tree: trees) if(compare(tree->key, _min->key)) _min = tree;
 }
 
@@ -511,7 +525,7 @@ void binomial_heap<T, Comp>::fast_zip() {
 }
 
 /**
- *  @brief  Merges this tree list with rhs, zipping up the list afterwards.
+ *  @brief      Merges this tree list with rhs, zipping up the list afterwards.
  *  @param[in]  rhs the list with which this list is to be merged.
  */
 template<typename T, typename Comp>

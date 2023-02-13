@@ -21,7 +21,7 @@ int main() {
     std::random_shuffle(unsorted.begin(), unsorted.end());
     std::cout << "Unsorted: ";
     for(int n: unsorted) std::cout << n << " ";
-    heap_sort(unsorted.begin(), unsorted.end());
+    binom_heap_sort(unsorted.begin(), unsorted.end());
     std::cout << std::endl;
     std::cout << "Sorted: ";
     for(int n: unsorted) std::cout << n << " ";

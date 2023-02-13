@@ -19,7 +19,7 @@
  *  @param[in]      compare the comparison function to be used for sorting, defaults to std::less
  */
 template<class InputIterator, typename Comp = std::less<typename InputIterator::value_type>>
-void heap_sort(InputIterator start, InputIterator stop, const Comp& compare = Comp()) {
+void binom_heap_sort(InputIterator start, InputIterator stop, const Comp& compare = Comp()) {
     binomial_heap<typename InputIterator::value_type, Comp> heap(start, stop, compare);
     for(; start != stop; ++start) *start = heap.extract();
 }
