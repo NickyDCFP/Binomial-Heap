@@ -28,7 +28,6 @@
 *          more complex.                                                                           *
 *       c) Will spend some time looking into the heuristic advantages of swapping to list and then *
 *          make a decision based on how tangible they are.                                         *
-*   4) Implement emplacing
 ***************************************************************************************************/
 
 /**
@@ -42,8 +41,11 @@ class binomial_heap {
 public:
     class iterator;
     explicit binomial_heap(const Comp& compare = Comp());
-    template<class InputIterator>
-    binomial_heap(InputIterator start, InputIterator stop, const Comp& compare = Comp());
+    template<class InputIterator> binomial_heap(
+        InputIterator start,
+        InputIterator stop,
+        const Comp& compare = Comp()
+    );
     binomial_heap(const binomial_heap& rhs);
     binomial_heap(binomial_heap&& rhs);
     binomial_heap& operator=(const binomial_heap& rhs);
@@ -56,9 +58,16 @@ public:
     T extract();
     void merge(binomial_heap& rhs);
     void merge(binomial_heap&& rhs);
-    iterator insert(T key);
-    template<class InputIterator>
-    std::vector<iterator> multi_insert(InputIterator start, InputIterator stop);
+    void insert(const T& key);
+    void insert(T&& key);
+    iterator iter_insert(const T& key);
+    iterator iter_insert(T&& key);
+    template<class...Args> iterator iter_emplace(Args&&...args);
+    template<class...Args> void emplace(Args&&...args);
+    template<class InputIterator> std::vector<iterator> multi_insert(
+        InputIterator start,
+        InputIterator stop
+    );
     void decrease_key(const iterator& it, T new_key);
     void remove(iterator&& it);
     class iterator {
@@ -77,6 +86,7 @@ private:
     struct node {
         node();
         node(const T& key);
+        node(T&& key);
         node(const node& rhs);
         node(node&& rhs);
         node& operator=(const node& rhs);
@@ -136,6 +146,14 @@ binomial_heap<T, Comp>::node::node() : key(T()), degree(0) {}
  */
 template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::node(const T& key) : key(key), degree(0) {}
+
+
+/**
+ *  @brief      Constructs a node with the provided key, by move
+ *  @param[in]  key the key of the node to be constructed
+*/
+template<typename T, typename Comp>
+binomial_heap<T, Comp>::node::node(T&& key) : key(std::forward<T>(key)), degree(0) {}
 
 /**
  *  @brief      Copy constructor for nodes
@@ -404,26 +422,91 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge(binomial_heap<T, Comp>&& rhs) {
     _size += rhs._size;
     if(compare(rhs._min->key, _min->key)) _min = rhs._min;
-    merge_lists(rhs.trees);
+    merge_lists(std::forward<std::forward_list<node*>>(rhs.trees));
 }
 
 /**
- *  @brief      Inserts a key into the heap. O(1) am. time.
+ *  @brief      Inserts a key into the heap. O(1) am. time
  *  @param[in]  key the key to be inserted into the heap
  *  @return     an iterator containing the node that was just inserted into the heap
  */
 template<typename T, typename Comp>
-typename binomial_heap<T, Comp>::iterator binomial_heap<T, Comp>::insert(T key) {
+void binomial_heap<T, Comp>::insert(const T& key) {
     ++_size;
     node* new_tree = new node(key);
     trees.push_front(new_tree);
-    if(!_min) {
-        _min = new_tree;
-    }
-    else if(compare(new_tree->key, _min->key)) { _min = new_tree; }
+    if(!_min) _min = new_tree;
+    else if(compare(new_tree->key, key)) { _min = new_tree; }
+    fast_zip();
+}
+
+/**
+ *  @brief      Inserts a key into the heap. O(1) am. time
+ *  @param[in]  key the key to be inserted into the heap
+ *  @return     an iterator containing the node that was just inserted into the heap
+ */
+template<typename T, typename Comp>
+void binomial_heap<T, Comp>::insert(T&& key) {
+    ++_size;
+    node* new_tree = new node(std::forward<T>(key));
+    trees.push_front(new_tree);
+    if(!_min) _min = new_tree;
+    else if(compare(new_tree->key, key)) { _min = new_tree; }
+    fast_zip();
+}
+
+/**
+ *  @brief      Inserts a key into the heap. O(1) am. time and returns an iterator
+ *  @param[in]  key the key to be inserted into the heap
+ *  @return     an iterator containing the node that was just inserted into the heap
+ */
+template<typename T, typename Comp>
+typename binomial_heap<T, Comp>::iterator binomial_heap<T, Comp>::iter_insert(const T& key) {
+    ++_size;
+    node* new_tree = new node(key);
+    trees.push_front(new_tree);
+    if(!_min) _min = new_tree;
+    else if(compare(new_tree->key, key)) { _min = new_tree; }
     fast_zip();
     return iterator(new_tree);
 }
+
+/**
+ *  @brief      Inserts a key into the heap. O(1) am. time and returns an iterator
+ *  @param[in]  key the key to be inserted into the heap
+ *  @return     an iterator containing the node that was just inserted into the heap
+ */
+template<typename T, typename Comp>
+typename binomial_heap<T, Comp>::iterator binomial_heap<T, Comp>::iter_insert(T&& key) {
+    ++_size;
+    node* new_tree = new node(std::forward<T>(key));
+    trees.push_front(new_tree);
+    if(!_min) _min = new_tree;
+    else if(compare(new_tree->key, key)) { _min = new_tree; }
+    fast_zip();
+    return iterator(new_tree);
+}
+
+/**
+ *  @brief      Emplaces a key onto the heap and returns an iterator to it
+ * 
+ *  @param[in]  ...args parameter list for the constructor for T
+ *  @return     an iterator to the node containing the inserted key
+ */
+template<typename T, typename Comp>
+template<class...Args>
+typename binomial_heap<T, Comp>::iterator binomial_heap<T, Comp>::iter_emplace(Args&&...args) {
+    return iter_insert(T(args...));
+}
+
+/**
+ * @brief       Emplaces a key onto the heap
+ * 
+ * @param[in]   ...args parameter list for the constructor for T
+ */
+template<typename T, typename Comp>
+template<class...Args>
+void binomial_heap<T, Comp>::emplace(Args&&...args) { insert(T(args...)); }
 
 /**
  *  @brief      Inserts a range of elements into the heap
@@ -439,7 +522,7 @@ std::vector<typename binomial_heap<T, Comp>::iterator> binomial_heap<T, Comp>::m
     InputIterator stop
 ) {
     std::vector<iterator> iters;
-    while(start != stop) { iters.push_back(insert(*start)); ++start; }
+    while(start != stop) { iters.push_back(iter_insert(*start)); ++start; }
     _size += stop - start;
     return iters;
 }
