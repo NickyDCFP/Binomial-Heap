@@ -63,7 +63,11 @@ public:
     iterator iter_insert(T&& key);
     template<class...Args> iterator iter_emplace(Args&&...args);
     template<class...Args> void emplace(Args&&...args);
-    template<class InputIterator> std::vector<iterator> multi_insert(
+    template<class InputIterator> void multi_insert(
+        InputIterator start,
+        InputIterator stop
+    );
+    template<class InputIterator> std::vector<iterator> iter_multi_insert(
         InputIterator start,
         InputIterator stop
     );
@@ -94,7 +98,6 @@ private:
         node* search(const T& target, const Comp& compare);
         void delete_children();
         node* promote(node* to_merge, const Comp& compare);
-
         T key;
         std::forward_list<node*> children;
         uint64_t degree;
@@ -161,7 +164,7 @@ binomial_heap<T, Comp>::node::node(T&& key) : key(std::forward<T>(key)), degree(
 template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::node(
     const typename binomial_heap<T, Comp>::node& rhs
-) { this->operator=(rhs); }
+) { *this = rhs; }
 
 /**
  *  @brief      Move copy constructor for nodes
@@ -170,7 +173,7 @@ binomial_heap<T, Comp>::node::node(
 template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::node(
     typename binomial_heap<T, Comp>::node&& rhs
-) { this->operator=(rhs); }
+) { *this = std::move(rhs); }
 
 /**
  *  @brief      Assignment operator for nodes
@@ -181,10 +184,12 @@ template<typename T, typename Comp>
 typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
     const typename binomial_heap<T, Comp>::node& rhs
 ) {
-    key = rhs.key;
-    delete_children();
-    children.clear();
-    for(node* child: rhs.children) children.push_front(new node(child));
+    if(this != &rhs) {
+        key = rhs.key;
+        delete_children();
+        children.clear();
+        for(node* child: rhs.children) children.push_front(new node(child));
+    }
     return *this;
 }
 
@@ -197,11 +202,13 @@ template<typename T, typename Comp>
 typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
     typename binomial_heap<T, Comp>::node&& rhs
 ) {
-    delete_children();
-    children.clear();
-    key = std::move(rhs.key);
-    children = std::move(rhs.children);
-    degree = std::move(rhs.degree);
+    if(this != &rhs) {
+        delete_children();
+        children.clear();
+        key = std::move(rhs.key);
+        children = std::move(rhs.children);
+        degree = std::move(rhs.degree);
+    }
     return *this;
 }
 
@@ -220,6 +227,7 @@ void binomial_heap<T, Comp>::node::delete_children() {
     children.clear();
     degree = 0;
 }
+
 /**
  *  @brief      Searches for a node in this tree with a particular node. Time complexity is linear
  *              with the number of nodes in the tree.
@@ -358,7 +366,6 @@ size_t binomial_heap<T, Comp>::size() const { return _size; }
  */
 template<typename T, typename Comp>
 bool binomial_heap<T, Comp>::empty() const { return !_size; }
-
 
 /**
  *  @brief      Finds the first occurrence of a certain key in the heap by iterating through
@@ -511,21 +518,30 @@ void binomial_heap<T, Comp>::emplace(Args&&...args) { insert(T(args...)); }
  *  @brief      Inserts a range of elements into the heap
  *  @param[in]  start the beginning of the range to be inserted into the heap
  *  @param[in]  stop the end of the range to be inserted into the heap
+ */
+template<typename T, typename Comp>
+template<class InputIterator>
+void binomial_heap<T, Comp>::multi_insert(InputIterator start, InputIterator stop) {
+    for(; start != stop; ++start) insert(*start);
+}
+
+/**
+ *  @brief      Inserts a range of elements into the heap and returns a vector with their iterators
+ *  @param[in]  start the beginning of the range to be inserted into the heap
+ *  @param[in]  stop the end of the range to be inserted into the heap
  *  @return     a vector containing the respective iterators for each of the elements that were
  *              inserted into the heap.
  */
 template<typename T, typename Comp>
 template<class InputIterator>
-std::vector<typename binomial_heap<T, Comp>::iterator> binomial_heap<T, Comp>::multi_insert(
+std::vector<typename binomial_heap<T, Comp>::iterator> binomial_heap<T, Comp>::iter_multi_insert(
     InputIterator start,
     InputIterator stop
 ) {
     std::vector<iterator> iters;
-    while(start != stop) { iters.push_back(iter_insert(*start)); ++start; }
-    _size += stop - start;
+    for(; start != stop; ++start) iters.push_back(iter_insert(*start));
     return iters;
 }
-
 
 /**
  *  @brief          Decreases the key of the node contained within the passed iterator. If the
