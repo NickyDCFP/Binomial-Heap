@@ -8,7 +8,7 @@
 */
 #ifndef BINOMIAL_HEAP
 #define BINOMIAL_HEAP 1
-#include <forward_list>
+#include <list>
 #include <vector>
 #include <functional>
 #include <stdexcept>
@@ -18,15 +18,6 @@
 * Next steps:                                                                                      *
 *   1) Add parent pointers to support decrease_key and deletion                                    *
 *       a) Updates might make other things slower? It's two pointer changes instead of one         *
-*   2) Child lists are stored in reverse order relative to the tree list, which means they need to *
-*      be reversed every merge. Two possible solutions.                                            *
-*       a) Refactor the code to use std::list instead of std::forward_list, which would probably   *
-*          also have other slight heuristic time advantages.                                       *
-*       b) Store an iterator permanently sitting at the end of the list so that insertion to the   *
-*          end will be instant, meaning the lists will be in the same order. Saves space but is    *
-*          more complex.                                                                           *
-*       c) Will spend some time looking into the heuristic advantages of swapping to list and then *
-*          make a decision based on how tangible they are.                                         *
 ***************************************************************************************************/
 
 /**
@@ -85,7 +76,7 @@ private:
     void set_min();
     void zip();
     void fast_zip();
-    void merge_lists(std::forward_list<node*>&& rhs);
+    void merge_lists(std::list<node*>&& rhs);
     struct node {
         node();
         explicit node(const T& key);
@@ -99,11 +90,11 @@ private:
         void delete_children();
         node* promote(node* to_merge, const Comp& compare);
         T key;
-        std::forward_list<node*> children;
-        uint64_t degree;
+        std::list<node*> children;
+        node* parent;
     };
     Comp compare;
-    std::forward_list<node*> trees;
+    std::list<node*> trees;
     node* _min;
     size_t _size;
 };
@@ -140,14 +131,14 @@ binomial_heap<T, Comp>::iterator::iterator(binomial_heap<T, Comp>::node* data) :
  *  @brief      Default constructor for nodes
  */
 template<typename T, typename Comp>
-binomial_heap<T, Comp>::node::node() : key(T()), degree(0) {}
+binomial_heap<T, Comp>::node::node() : key(T()), parent(nullptr) {}
 
 /**
  *  @brief      Constructs a node with provided key   
  *  @param[in]  key the key of the node to be constructed
  */
 template<typename T, typename Comp>
-binomial_heap<T, Comp>::node::node(const T& key) : key(key), degree(0) {}
+binomial_heap<T, Comp>::node::node(const T& key) : key(key), parent(nullptr) {}
 
 
 /**
@@ -155,7 +146,9 @@ binomial_heap<T, Comp>::node::node(const T& key) : key(key), degree(0) {}
  *  @param[in]  key the key of the node to be constructed
 */
 template<typename T, typename Comp>
-binomial_heap<T, Comp>::node::node(T&& key) : key(std::forward<T>(key)), degree(0) {}
+binomial_heap<T, Comp>::node::node(T&& key) : 
+    key(std::forward<T>(key)),
+    parent(nullptr) {}
 
 /**
  *  @brief      Copy constructor for nodes
@@ -188,7 +181,8 @@ typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
         key = rhs.key;
         delete_children();
         children.clear();
-        for(node* child: rhs.children) children.push_front(new node(child));
+        for(node* child: rhs.children) children.push_back(new node(child));
+        parent = rhs.parent;
     }
     return *this;
 }
@@ -207,7 +201,7 @@ typename binomial_heap<T, Comp>::node& binomial_heap<T, Comp>::node::operator=(
         children.clear();
         key = std::move(rhs.key);
         children = std::move(rhs.children);
-        degree = std::move(rhs.degree);
+        parent = std::move(rhs.parent);
     }
     return *this;
 }
@@ -219,13 +213,13 @@ template<typename T, typename Comp>
 binomial_heap<T, Comp>::node::~node() { delete_children(); }
 
 /**
- *  @brief      Deletes all of a node's children and resets its degree to zero
+ *  @brief      Deletes all of a node's children
  */
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::node::delete_children() {
     for(node* child: children) delete child;
     children.clear();
-    degree = 0;
+    parent = nullptr;
 }
 
 /**
@@ -261,12 +255,12 @@ typename binomial_heap<T, Comp>::node* binomial_heap<T, Comp>::node::promote(
     const Comp& compare
 ) {
     if(compare(key, to_merge->key)) {
-        children.push_front(to_merge);
-        ++degree;
+        children.push_back(to_merge);
+        to_merge->parent = this;
         return this;
     }
-    to_merge->children.push_front(this);
-    ++to_merge->degree;
+    to_merge->children.push_back(this);
+    parent = to_merge;
     return to_merge;
 }
 
@@ -325,8 +319,7 @@ binomial_heap<T, Comp>& binomial_heap<T, Comp>::operator=(const binomial_heap<T,
     delete_trees();
     compare = rhs.compare;
     _size = rhs._size;
-    for(node* tree: rhs.trees) { trees.push_front(new node(*tree)); }
-    trees.reverse();
+    for(node* tree: rhs.trees) { trees.push_back(new node(*tree)); }
     set_min();
     return *this;
 }
@@ -400,9 +393,8 @@ template<typename T, typename Comp>
 T binomial_heap<T, Comp>::extract() {
     T min_val = _min->key;
     trees.remove(_min);
-    _min->children.reverse();
     merge_lists(std::move(_min->children));
-    _min->children = std::forward_list<node*>();
+    _min->children = std::list<node*>();
     delete _min;
     set_min();
     --_size;
@@ -428,7 +420,7 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge(binomial_heap<T, Comp>&& rhs) {
     _size += rhs._size;
     if(compare(rhs._min->key, _min->key)) _min = rhs._min;
-    merge_lists(std::forward<std::forward_list<node*>>(rhs.trees));
+    merge_lists(std::forward<std::list<node*>>(rhs.trees));
 }
 
 /**
@@ -557,7 +549,12 @@ void binomial_heap<T, Comp>::decrease_key(
     T new_key
 ) {
     if(!compare(new_key, it.data->key)) throw new std::invalid_argument("Invalid new key.");
-    //finish
+    node* walker = it.data;
+    walker->key = new_key;
+    while(walker->parent && compare(new_key, walker->parent->key)) {
+        //swap lists and transfer parent into swapped this list
+        walker->parent = walker->parent->parent;
+    }
 }
 
 /**
@@ -597,10 +594,10 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::zip() {
     for(auto it = trees.begin(); it != trees.end() && std::next(it, 1) != trees.end();) {
         auto next = std::next(it, 1);
-        if((*it)->degree > (*next)->degree) std::iter_swap(it, next);
-        if((*it)->degree == (*next)->degree) {
+        if((*it)->children.size() > (*next)->children.size()) std::iter_swap(it, next);
+        if((*it)->children.size() == (*next)->children.size()) {
             *it = (*it)->promote(*next, compare);
-            trees.erase_after(it);
+            trees.erase(next);
         }
         else it = next;
     }
@@ -614,9 +611,9 @@ template<typename T, typename Comp>
 void binomial_heap<T, Comp>::fast_zip() {
     for(auto it = trees.begin(); it != trees.end() && (std::next(it, 1)) != trees.end();) {
         auto next = std::next(it, 1);
-        if((*it)->degree == (*next)->degree) {
+        if((*it)->children.size() == (*next)->children.size()) {
             *it = (*it)->promote(*next, compare);
-            trees.erase_after(it);
+            trees.erase(next);
         }
         else return;
     }
@@ -628,6 +625,9 @@ void binomial_heap<T, Comp>::fast_zip() {
  */
 template<typename T, typename Comp>
 void binomial_heap<T, Comp>::merge_lists(
-    std::forward_list<typename binomial_heap<T, Comp>::node*>&& rhs
-) { trees.merge(rhs, [] (node* a, node* b) { return a->degree < b->degree; }); zip(); }
+    std::list<typename binomial_heap<T, Comp>::node*>&& rhs
+) {
+    trees.merge(rhs, [] (node* a, node* b) { return a->children.size() < b->children.size(); });
+    zip();
+}
 #endif
