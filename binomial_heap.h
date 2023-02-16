@@ -553,6 +553,7 @@ void binomial_heap<T, Comp>::decrease_key(
     walker->key = new_key;
     while(walker->parent && compare(new_key, walker->parent->key)) {
         //swap lists and transfer parent into swapped this list
+        //degree is index in parent listfv
         walker->parent = walker->parent->parent;
     }
 }
