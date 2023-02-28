@@ -2,6 +2,8 @@
 
 A binomial heap that supports O(1) am. insertion and O(log n) merging, matching binary heaps for the time complexities of all other operations. 
 
+Currently, decrease-key and delete still need to be implemented, but all other functionality is supported.
+
 | Operation | Binary Heaps | Binomial Heaps |
 | --------- | ------------ | -------------- |
 | Report Min | $$O(1)$$ | $$O(1)$$ |
